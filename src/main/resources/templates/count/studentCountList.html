@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<title>学生统计列表</title>
+	<link rel="stylesheet" type="text/css" th:href="@{/easyui/themes/default/easyui.css}">
+	<link rel="stylesheet" type="text/css" th:href="@{/easyui/themes/icon.css}">
+	<link rel="stylesheet" type="text/css" th:href="@{/easyui/css/demo.css}">
+	<script type="text/javascript" th:src="@{/easyui/jquery.min.js}"></script>
+	<script type="text/javascript" th:src="@{/easyui/jquery.easyui.min.js}"></script>
+	<script type="text/javascript" th:src="@{/easyui/js/validateExtends.js}"></script>
+	<style>
+		.datagrid-btable tr{height: 40px;}
+		.datagrid-cell{height: 40px;line-height:40px;}
+	</style>
+	<script type="text/javascript" th:inline="javascript">
+		/*<![CDATA[*/
+		$(function() {
+			//datagrid初始化
+			$('#dataList').datagrid({
+				title:'学生统计列表',
+				iconCls:'icon-more',//图标
+				border: true,
+				collapsible:false,//是否可折叠的
+				fit: true,//自动大小
+				method: "post",
+				url:[[@{/count/getCountList(table=student)}]],
+				idField:'name',
+				pagination:true,//分页控件
+					rownumbers:true,//行号
+				sortName:'name',
+				sortOrder:'DESC',
+				remoteSort: false,
+				columns: [
+						[
+					{field:'name',title:'学院',width:150, sortable: true},
+					{field:'studentNum',title:'学生人数',width:150,sortable: true}
+					]
+				],
+				toolbar: "#toolbar",
+			});
+
+			//设置分页控件
+			var p = $('#dataList').datagrid('getPager');
+			$(p).pagination({
+				pageSize: 10,//每页显示的记录条数，默认为10
+				pageList: [10,20,30,50,100],//可以设置每页记录条数的列表
+				beforePageText: '第',//页数文本框前显示的汉字
+				afterPageText: '页    共 {pages} 页',
+				displayMsg: '当前显示 {from} - {to} 条记录   共 {total} 条记录',
+			});
+			//设置工具类按钮
+			$("#refresh").click(function(){
+				$('#dataList').datagrid('reload');
+			});
+
+		});
+
+		/*]]>*/
+	</script>
+</head>
+<body>
+<!-- 数据列表 -->
+<table id="dataList" cellspacing="0" cellpadding="0">
+
+</table>
+<!-- 工具栏 -->
+<div id="toolbar">
+			<div style="float: left;"><a id="refresh" href="javascript:;" class="easyui-linkbutton" data-options="iconCls:'icon-reload',plain:true">刷新</a></div>
+</div>
+</body>
+</html>

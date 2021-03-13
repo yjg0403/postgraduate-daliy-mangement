@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yjg123.projectmanager.mapper.TeamMapper">
+
+    <resultMap type="com.yjg123.projectmanager.domain.Team" id="TeamInfo">
+        <result column="no" property="no"/>
+        <result column="name" property="name"/>
+        <result column="labor" property="labor"/>
+        <result column="teacher" property="teacher"/>
+    </resultMap>
+
+    <select id="queryList" resultMap="TeamInfo" >
+        <!-- 根据条件查询 班级的所有信息 -->
+        SELECT *
+        from team
+        <where>
+            <if test="name!=null"> and name LIKE concat("%",#{name},"%") </if>
+            <if test="teacher!=null"> and teacher LIKE concat("%",#{teacher},"%") </if>
+        </where>
+        limit #{startIndex},#{pagesize}
+    </select>
+
+    <select id="queryCount" resultType="int" >
+        select count(*) from team
+        <where>
+            <if test="name!=null"> and name LIKE concat("%",#{name},"%") </if>
+            <if test="teacher!=null"> and teacher LIKE concat("%",#{teacher},"%") </if>
+        </where>
+    </select>
+
+    <insert id="addTeam" parameterType="Team">
+        insert into team(name,teacher,labor) values(#{name},#{teacher},#{labor})
+    </insert>
+
+    <select id="findTeachersByTeam"  resultType="String">
+        <!-- 根据小组号查询小组所有老师的工号 -->
+        SELECT teacher
+        from team_teacher
+        <where>
+            team = #{team}
+        </where>
+    </select>
+
+
+    <select id="findStudentsByTeam"  resultType="String">
+        <!-- 根据小组号查询小组所有学生的学号 -->
+        SELECT no
+        from student
+        <where>
+            team = #{team}
+        </where>
+    </select>
+
+    <delete id="deleteTeam" parameterType="java.util.ArrayList">
+        delete from team
+        <where>
+            no in
+            <foreach collection="list" open="(" close=")" separator="," item="no">
+                #{no}
+            </foreach>
+        </where>
+    </delete>
+
+    <delete id="deleteTeacher">
+        delete  from team_teacher
+        <where>
+            teacher=#{teacher} and team=#{no}
+        </where>
+    </delete>
+
+    <update id="deleteStudent">
+        update student
+        set team=NULL
+        <where>
+            no=#{student} and team=#{no}
+        </where>
+    </update>
+
+    <update id="addStudent">
+        update student
+        set team=#{no}
+        <where>
+            no=#{student}
+        </where>
+    </update>
+
+    <insert id="addTeacher">
+        insert into team_teacher(team,teacher) values(#{no},#{teacher})
+    </insert>
+
+    <update id="editTeam" parameterType="Team">
+        update team set name = #{name},teacher = #{teacher},labor = #{labor} where no = #{no}
+    </update>
+
+    <select id="findByName" parameterType="String" resultType="Team">
+        select * from team where name = #{name}
+    </select>
+
+</mapper>

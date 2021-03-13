@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yjg123.projectmanager.mapper.TeacherMapper">
+
+    <resultMap type="com.yjg123.projectmanager.domain.Teacher" id="TeacherInfo">
+        <result column="no" property="no"/>
+        <result column="name" property="name"/>
+        <result column="password" property="password"/>
+        <result column="age" property="age"/>
+        <result column="sex" property="sex"/>
+        <result column="mobile" property="mobile"/>
+        <result column="title" property="title"/>
+        <result column="depart" property="depart"/>
+        <result column="info" property="info"/>
+    </resultMap>
+
+    <select id="queryList" resultMap="TeacherInfo" >
+        <!-- 根据条件查询 老师所有信息 -->
+        SELECT *
+        from teacher
+        <where>
+            <if test="username!=null"> and name LIKE concat("%",#{username},"%") </if>
+            <if test="teacherNo!=null"> and no = #{teacherNo} </if>
+            <if test="departName!=null">and depart LIKE concat("%",#{departName},"%")</if>
+        </where>
+        limit #{startIndex},#{pagesize}
+    </select>
+
+    <select id="queryCount" resultType="int" >
+        select count(*) from teacher
+        <where>
+            <if test="username!=null"> and name LIKE concat("%",#{username},"%") </if>
+            <if test="teacherNo!=null"> and no = #{teacherNo} </if>
+            <if test="departName!=null">and depart LIKE concat("%",#{departName},"%")</if>
+        </where>
+    </select>
+
+    <insert id="addTeacher" parameterType="Teacher">
+        insert into teacher(no,name,password,depart,age,sex,mobile,info,title)
+        values(#{no},#{name},#{password},#{depart},#{age},#{sex},#{mobile},#{info},#{title})
+    </insert>
+
+    <delete id="deleteTeacher" parameterType="java.util.ArrayList">
+        delete from teacher
+        <where>
+            no in
+            <foreach collection="list" open="(" close=")" separator="," item="no">
+                #{no}
+            </foreach>
+        </where>
+    </delete>
+
+    <update id="editTeacher" parameterType="Teacher">
+        update teacher
+        <set>
+            <if test="name != null">
+                name = #{name},
+            </if>
+            <if test="depart != null">
+                depart = #{depart},
+            </if>
+            <if test="sex != null">
+                sex = #{sex},
+            </if>
+            <if test="mobile != null">
+                mobile = #{mobile},
+            </if>
+            <if test="age != null">
+                age = #{age},
+            </if>
+            <if test="info != null">
+                info = #{info},
+            </if>
+            <if test="title != null">
+                title = #{title},
+            </if>
+        </set>
+        where no = #{no}
+
+    </update>
+
+
+    <select id="findById" parameterType="int" resultType="Teacher">
+        select * from teacher where id = #{tid}
+    </select>
+
+
+    <select id="findByTeacher" parameterType="Teacher" resultType="Teacher">
+        select * from teacher where no = #{no} and password = #{password}
+    </select>
+
+    <update id="editPswdByTeacher" parameterType="Teacher">
+        update  teacher set password = #{password} where no = #{no}
+    </update>
+</mapper>

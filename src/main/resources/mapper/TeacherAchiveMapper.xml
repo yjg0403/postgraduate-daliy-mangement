@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yjg123.projectmanager.mapper.TeacherAchiveMapper">
+
+    <resultMap type="com.yjg123.projectmanager.domain.TeacherAchive" id="TeacherAchiveInfo">
+        <result column="id" property="id"/>
+        <result column="teacher" property="teacher"/>
+        <result column="content" property="content"/>
+        <result column="type" property="type"/>
+        <result column="info" property="info"/>
+    </resultMap>
+
+    <select id="queryList" resultMap="TeacherAchiveInfo" >
+        <!-- 根据条件查询 所有信息 -->
+        SELECT *
+        from teach_achive
+        <where>
+            <if test="teacher!=null"> and teacher LIKE concat("%",#{teacher},"%") </if>
+            <if test="type!=null"> and type LIKE concat("%",#{type},"%") </if>
+        </where>
+        limit #{startIndex},#{pagesize}
+    </select>
+
+    <select id="queryCount" resultType="int" >
+        select count(*) from teach_achive
+        <where>
+            <if test="teacher!=null"> and teacher LIKE concat("%",#{teacher},"%") </if>
+            <if test="type!=null"> and type LIKE concat("%",#{type},"%") </if>
+        </where>
+    </select>
+
+    <insert id="addTeacherAchive" parameterType="TeacherAchive">
+        insert into teach_achive(teacher,content,type,info) values
+             (#{teacher},#{content},#{type},#{info})
+    </insert>
+
+    <delete id="deleteTeacherAchive" parameterType="java.util.ArrayList">
+        delete from teach_achive
+        <where>
+            id in
+            <foreach collection="list" open="(" close=")" separator="," item="id">
+                #{id}
+            </foreach>
+        </where>
+    </delete>
+
+    <update id="editTeacherAchive" parameterType="TeacherAchive">
+        update teach_achive set
+                teacher = #{teacher},content = #{content},
+                type = #{type}, info = #{info}
+        where id = #{id}
+    </update>
+
+    <select id="findByName" parameterType="String" resultType="TeacherAchive">
+        select * from teach_achive where name = #{TeacherAchiveName}
+    </select>
+
+</mapper>

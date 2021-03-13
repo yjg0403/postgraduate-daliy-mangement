@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yjg123.projectmanager.mapper.CountMapper">
+
+    <resultMap type="com.yjg123.projectmanager.domain.Count" id="CountInfo">
+        <result column="name" property="name"/>
+        <result column="student_num" property="studentNum"/>
+        <result column="teacher_num" property="teacherNum"/>
+    </resultMap>
+
+    <select id="queryList"  resultMap="CountInfo" >
+        <!-- 根据条件查询院系的所有信息 -->
+        SELECT *  from ${tableName}
+    </select>
+
+    <select id="queryCount"  resultType="int" >
+        select count(*) from ${tableName}
+    </select>
+
+</mapper>

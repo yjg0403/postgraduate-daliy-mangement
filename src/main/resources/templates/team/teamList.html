@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>课题小组列表</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/easyui/themes/default/easyui.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/easyui/themes/icon.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/easyui/css/demo.css}">
+    <script type="text/javascript" th:src="@{/easyui/jquery.min.js}"></script>
+    <script type="text/javascript" th:src="@{/easyui/jquery.easyui.min.js}"></script>
+    <script type="text/javascript" th:src="@{/easyui/js/validateExtends.js}"></script>
+    <style>
+        .datagrid-btable tr{height: 40px;}
+        .datagrid-cell{height: 40px;line-height:40px;}
+    </style>
+    <script type="text/javascript" th:inline="javascript">
+        /*<![CDATA[*/
+        $(function() {
+            //datagrid初始化
+            $('#dataList').datagrid({
+                title:'课题小组列表',
+                iconCls:'icon-more',//图标
+                border: true,
+                collapsible: false,//是否可折叠的
+                fit: true,//自动大小
+                method: "post",
+                url:[[@{/team/getTeamList}]],
+                idField:'no',
+                singleSelect: false,//是否单选
+                pagination: true,//分页控件
+                rownumbers: true,//行号
+                sortName: 'no',
+                sortOrder: 'DESC',
+                remoteSort: false,
+                columns: [
+                    [
+                        {field:'chk',checkbox: true,width:50},
+                        {field:'no',title:'小组号',width:50, sortable: true},
+                        {field:'name',title:'名称',width:200},
+                        {field:'labor',title:'实验室',width:150},
+                        {field:'teacher',title:'负责老师',width:150,
+                            formatter: function(value,row,index){
+                                if (row.teacher){
+                                    var teacherList = $("#teacherList").combobox("getData");
+                                    for(var i=0;i<teacherList.length;i++ ){
+                                        if(row.teacher == teacherList[i].no)return teacherList[i].name;
+                                    }
+                                    return row.teacher;
+                                } else {
+                                    return 'not found';
+                                }
+                            }
+                        }
+                ]
+                ],
+                toolbar: "#toolbar",
+                onBeforeLoad : function(){
+                try{
+                    $("#teacherList").combobox("getData");
+                }catch(err){
+                    preLoadTeacher();
+                }
+            }
+        });
+            //设置分页控件
+            var p = $('#dataList').datagrid('getPager');
+            $(p).pagination({
+                pageSize: 10,//每页显示的记录条数，默认为10
+                pageList: [10,20,30,50,100],//可以设置每页记录条数的列表
+                beforePageText: '第',//页数文本框前显示的汉字
+                afterPageText: '页    共 {pages} 页',
+                displayMsg: '当前显示 {from} - {to} 条记录   共 {total} 条记录',
+            });
+
+            function preLoadTeacher(){
+                $("#teacherList").combobox({
+                    width: "150",
+                    height: "25",
+                    valueField: "no",
+                    textField: "name",
+                    multiple: false, //可多选
+                    editable: false, //不可编辑
+                    method: "post",
+                    url: [[@{/teacher/getTeacherList(from=combox)}]],
+            });
+            }
+            
+            //设置工具类按钮
+            $("#add").click(function(){
+                $("#addDialog").dialog("open");
+            });
+            //删除
+            $("#delete").click(function(){
+                var selectAll = $("#dataList").datagrid("getSelections");
+                var selectLength = selectAll.length;
+                if(selectLength == 0){
+                    $.messager.alert("消息提醒", "请选择数据进行删除!", "warning");
+                } else{
+                    var jsonObj = {};
+                    $.each(selectAll,function(i,n){
+                        jsonObj["nos["+i+"]"] = n.no;
+                    });
+                    $.messager.confirm("消息提醒", "将删除小组信息，确认继续？", function(r){
+                        if(r){
+                            $.ajax({
+                                type: "post",
+                                url: [[@{/team/deleteTeam}]],
+                                data: jsonObj,
+                                success: function(data){
+                                    if(data.success){
+                                        $.messager.alert("消息提醒",data.message,"info");
+                                        //刷新表格
+                                        $("#dataList").datagrid("reload");
+                                    } else{
+                                        $.messager.alert("消息提醒",data.message,"warning");
+                                        return;
+                                    }
+                                }
+                            });
+                        }
+                    });
+
+                }
+            });
+            //查看
+            $("#look").click(function(){
+                var selectRows = $("#dataList").datagrid("getSelections");
+                if(selectRows.length != 1){
+                    $.messager.alert("消息提醒", "请选择一条数据进行操作!", "warning");
+                } else{
+                    $("#lookDialog").dialog("open");
+                    $('#team_teachers').datalist('load',{
+                        team: $("#look_no").val()
+                    });
+                    $('#team_students').datalist('load',{
+                        team: $("#look_no").val()
+                    });
+                }
+            });
+
+            //下拉框通用属性
+            $("#add_teacherList, #edit_teacherList").combobox({
+                width: "200",
+                height: "30",
+                valueField: "no",
+                textField: "name",
+                multiple: false, //可多选
+                editable: false, //不可编辑
+                method: "post"
+            });
+
+            $("#edit_teacherList").combobox({
+                url: [[@{/teacher/getTeacherList(from=combox)}]],
+                onLoadSuccess: function(){
+                //默认选择第一条数据
+                    var data = $(this).combobox("getData");
+                    $(this).combobox("setValue", data[0].no);
+                }
+            });
+
+            $("#add_teacherList").combobox({
+                url: [[@{/teacher/getTeacherList(from=combox)}]],
+                onLoadSuccess: function(){
+                    //默认选择第一条数据
+                    var data = $(this).combobox("getData");
+                    $(this).combobox("setValue", data[0].no);
+                }
+            });
+
+            //设置添加小组窗口
+            $("#addDialog").dialog({
+                title: "添加小组",
+                width: 500,
+                height: 400,
+                iconCls: "icon-add",
+                modal: true,
+                collapsible: false,
+                minimizable: false,
+                maximizable: false,
+                draggable: true,
+                closed: true,
+                buttons: [
+                    {
+                        text:'添加',
+                        plain: true,
+                        iconCls:'icon-add',
+                        handler:function(){
+                            //var teacher = $("#add_teacherList").combobox("getValue");
+                            var validate = $("#addForm").form("validate");
+                            var formData = new FormData($( "#addForm" )[0]);
+                            if(!validate){
+                                $.messager.alert("消息提醒","请检查你输入的数据!","warning");
+                                return;
+                            } else{
+                                $.ajax({
+                                    type: "post",
+                                    url: [[@{/team/addTeam}]],
+                                    data: formData,
+                                    async: false,
+                                    cache: false,
+                                    contentType: false,
+                                    processData: false,
+                                    success: function(data){
+                                        if(data.success){
+                                            $.messager.alert("消息提醒",data.message,"info");
+                                            //关闭窗口
+                                            $("#addDialog").dialog("close");
+                                            //清空原表格数据
+                                            $("#add_labor").textbox('setValue', "");
+                                            $("#add_name").textbox('setValue', "");
+                                            $("#add_teacherList").combobox('setValue', "");
+
+                                            //重新刷新页面数据
+                                            //$('#dataList').datagrid("options").queryParams = {teacher: teacher};
+                                            $('#dataList').datagrid("reload");
+
+                                        } else{
+                                            $.messager.alert("消息提醒",data.message,"warning");
+                                            return;
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    },
+                    {
+                        text:'重置',
+                        plain: true,
+                        iconCls:'icon-reload',
+                        handler:function(){
+                            $("#add_labor").textbox('setValue', "");
+                            $("#add_name").textbox('setValue', "");
+                            $("#add_teacherList").combobox('setValue', "");
+                        }
+                    },
+                ]
+            });
+
+
+            //搜索按钮监听事件
+            $("#search-btn").click(function(){
+                $('#dataList').datagrid('load',{
+                    name: $("#teamName").combobox('getValue'),
+                    teacher: $("#teacherList").combobox('getValue')
+                });
+            });
+
+            //修改按钮监听事件
+            $("#edit-btn").click(function(){
+                var selectRow = $("#dataList").datagrid("getSelected");
+                //console.log(selectRow);
+                if(selectRow == null){
+                    $.messager.alert("消息提醒", "请选择数据进行修改!", "warning");
+                    return;
+                }
+                $("#editDialog").dialog("open");
+            });
+
+            //设置编辑小组窗口
+            $("#editDialog").dialog({
+                title: "编辑小组",
+                width: 500,
+                height: 400,
+                iconCls: "icon-add",
+                modal: true,
+                collapsible: false,
+                minimizable: false,
+                maximizable: false,
+                draggable: true,
+                closed: true,
+                buttons: [
+                    {
+                        text:'确定修改',
+                        plain: true,
+                        iconCls:'icon-add',
+                        handler:function(){
+                            var validate = $("#editForm").form("validate");
+                            //var teacher= $("#edit_teacherList").combobox("getValue");
+                            if(!validate){
+                                $.messager.alert("消息提醒","请检查你输入的数据!","warning");
+                                return;
+                            } else{
+                                var formData = new FormData($( "#editForm" )[0]);
+                                $.ajax({
+                                    type: "post",
+                                    url:[[@{/team/editTeam}]],
+                                    data: formData,
+                                     async: false,
+                                    cache: false,
+                                    contentType: false,
+                                    processData: false,
+                                    success: function(data){
+                                        if(data.success){
+                                            $.messager.alert("消息提醒",data.message,"info");
+                                            //关闭窗口
+                                            $("#editDialog").dialog("close");
+                                            //清空原表格数据
+                                            $("#edit_labor").textbox('setValue', "");
+                                            $("#edit_name").textbox('setValue', "");
+                                            $("#edit_teacherList").combobox('setValue', "");
+                                            //重新刷新页面数据
+                                            //$('#dataList').datagrid("options").queryParams = {teacher: teacher};
+                                            $('#dataList').datagrid("reload");
+                                            $("#dataList").datagrid("uncheckAll");
+
+                                        } else{
+                                            $.messager.alert("消息提醒",data.message,"warning");
+                                            return;
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    },
+                    {
+                        text:'重置',
+                        plain: true,
+                        iconCls:'icon-reload',
+                        handler:function(){
+                            $("#edit_labor").textbox('setValue', "");
+                            $("#edit_name").textbox('setValue', "");
+                            $("#edit_teacherList").combobox('setValue', "");
+                        }
+                    },
+                ],
+                onBeforeOpen: function(){
+                    var selectRow = $("#dataList").datagrid("getSelected");
+                    //console.log(selectRow);
+                    //设置值
+                    $("#edit_labor").textbox('setValue', selectRow.labor);
+                    $("#edit_name").textbox('setValue', selectRow.name);
+                    $("#edit_teacherList").combobox('setValue', selectRow.teacher);
+                    $("#edit_no").val(selectRow.no);
+                }
+            });
+
+            //设置查看小组窗口
+            $("#lookDialog").dialog({
+                title: "查看小组",
+                width: 600,
+                height: 500,
+                iconCls: "icon-add",
+                modal: true,
+                collapsible: false,
+                minimizable: false,
+                maximizable: false,
+                draggable: true,
+                closed: true,
+                buttons: [
+                    {
+                        text:'添加老师',
+                        plain: true,
+                        iconCls:'icon-add',
+                        handler:function(){
+                            var teacher = $("#look_teacherList").combobox('getValue');
+                            var no = $("#look_no").val();
+                            if(!teacher){
+                                $.messager.alert("消息提醒","请检查你输入的数据!","warning");
+                                return;
+                            } else{
+                                var formData = {no:no,teacher:teacher};
+                                $.ajax({
+                                    type: "post",
+                                    url:[[@{/team/addTeacher}]],
+                                    data: formData,
+                                    success: function(data){
+                                    if(data.success){
+                                        $.messager.alert("消息提醒",data.message,"info");
+                                        //清空原表格数据
+                                        $("#look_teacherList").combobox('setValue', "");
+                                        $("#look_studentList").combobox('setValue', "");
+                                        //重新刷新页面数据
+                                        $('#team_teachers').datagrid("reload");
+                                        $("#team_teachers").datalist("uncheckAll");
+                                        $("#team_students").datalist("uncheckAll");
+                                    } else{
+                                        $.messager.alert("消息提醒",data.message,"warning");
+                                        return;
+                                    }
+                                }
+                            });
+                            }
+                        }
+                    },
+                    {
+                        text:'删除老师',
+                        plain: true,
+                        iconCls:'icon-some-delete',
+                        handler:function(){
+                            var selectRow = $("#team_teachers").datalist("getSelected");
+                            var no = $("#look_no").val();
+                            if(!selectRow){
+                                $.messager.alert("消息提醒","请检查你输入的数据!","warning");
+                                return;
+                            } else{
+                                var teacher=selectRow.no;
+                                var formData = {no:no,teacher:teacher};
+                                $.ajax({
+                                    type: "post",
+                                    url:[[@{/team/deleteTeacher}]],
+                                    data: formData,
+                                    success: function(data){
+                                    if(data.success){
+                                        $.messager.alert("消息提醒",data.message,"info");
+                                        //清空原表格数据
+                                        $("#look_teacherList").combobox('setValue', "");
+                                        $("#look_studentList").combobox('setValue', "");
+                                        //重新刷新页面数据
+                                        $('#team_teachers').datagrid("reload");
+                                        $("#team_teachers").datalist("uncheckAll");
+                                        $("#team_students").datalist("uncheckAll");
+                                    } else{
+                                        $.messager.alert("消息提醒",data.message,"warning");
+                                        return;
+                                    }
+                                }
+                            });
+                            }
+                        }
+                    },
+                    {
+                        text:'添加学生',
+                        plain: true,
+                        iconCls:'icon-add',
+                        handler:function(){
+                            var student = $("#look_studentList").combobox('getValue');
+                            var no = $("#look_no").val();
+                            if(!student){
+                                $.messager.alert("消息提醒","请检查你输入的数据!","warning");
+                                return;
+                            } else{
+                                var formData = {no:no,student:student};
+                                $.ajax({
+                                    type: "post",
+                                    url:[[@{/team/addStudent}]],
+                                    data: formData,
+                                    success: function(data){
+                                    if(data.success){
+                                        $.messager.alert("消息提醒",data.message,"info");
+                                        //清空原表格数据
+                                        $("#look_teacherList").combobox('setValue', "");
+                                        $("#look_studentList").combobox('setValue', "");
+                                        //重新刷新页面数据
+                                        $('#team_students').datagrid("reload");
+                                        $("#team_teachers").datalist("uncheckAll");
+                                        $("#team_students").datalist("uncheckAll");
+                                    } else{
+                                        $.messager.alert("消息提醒",data.message,"warning");
+                                        return;
+                                    }
+                                }
+                            });
+                            }
+                        }
+                    },
+                    {
+                        text:'删除学生',
+                        plain: true,
+                        iconCls:'icon-some-delete',
+                        handler:function(){
+                            var selectRow = $("#team_students").datalist("getSelected");
+                            var no = $("#look_no").val();
+                            if(!selectRow){
+                                $.messager.alert("消息提醒","请检查你输入的数据!","warning");
+                                return;
+                            } else{
+                                var student=selectRow.no;
+                                var formData = {no:no,student:student};
+                                $.ajax({
+                                    type: "post",
+                                    url:[[@{/team/deleteStudent}]],
+                                    data: formData,
+                                    success: function(data){
+                                    if(data.success){
+                                        $.messager.alert("消息提醒",data.message,"info");
+                                        //清空原表格数据
+                                        $("#look_teacherList").combobox('setValue', "");
+                                        $("#look_studentList").combobox('setValue', "");
+                                        //重新刷新页面数据
+                                        $('#team_students').datagrid("reload");
+                                        $("#team_teachers").datalist("uncheckAll");
+                                        $("#team_students").datalist("uncheckAll");
+                                    } else{
+                                        $.messager.alert("消息提醒",data.message,"warning");
+                                        return;
+                                    }
+                                }
+                            });
+                            }
+                        }
+                    }
+                ],
+                onBeforeOpen: function(){
+                    var selectRow = $("#dataList").datagrid("getSelected");
+                    $("#look_name").textbox('setValue', selectRow.name);
+                    $("#look_no").val(selectRow.no);
+                }
+            });
+
+        //设置查看小组所有老师窗口
+        $("#team_teachers").datalist({
+            title:'小组老师',
+            collapsible: false,//是否可折叠的
+            fit: false,//自动大小
+            checkbox: true,
+            width: 200,
+            height: 200,
+            method: "post",
+            url:[[@{/team/findTeachersByTeam}]],
+            valueField: "no",
+            textField: "teacher",
+            singleSelect: false,//是否单选
+            sortName: 'teacher',
+            sortOrder: 'DESC',
+            remoteSort: false,
+            textFormatter: function(value,row,index){
+                            if (row.no){
+                                var teacherList = $("#look_teacherList").combobox("getData");
+                                for(var i=0;i<teacherList.length;i++ ){
+                                    if(row.no == teacherList[i].no)return teacherList[i].name;
+                                }
+                                return row.no;
+                            } else {
+                                return 'not found';
+                            }
+                        },
+            onBeforeLoad : function(){
+                try{
+                    $("#look_teacherList").combobox("getData");
+                }catch(err){
+                    preLoadLookTeacher();
+                }
+            }
+        });
+
+            //设置查看小组所有学生窗口
+            $("#team_students").datalist({
+                title:'小组学生',
+                collapsible: false,//是否可折叠的
+                fit: false,//自动大小
+                checkbox: true,
+                width: 200,
+                height: 200,
+                method: "post",
+                url:[[@{/team/findStudentsByTeam}]],
+            valueField: "no",
+                textField: "student",
+                singleSelect: false,//是否单选
+                sortName: 'student',
+                sortOrder: 'DESC',
+                remoteSort: false,
+                textFormatter: function(value,row,index){
+                if (row.no){
+                    var studentList = $("#look_studentList").combobox("getData");
+                    for(var i=0;i<studentList.length;i++ ){
+                        if(row.no == studentList[i].no)return studentList[i].name;
+                    }
+                    return row.no;
+                } else {
+                    return 'not found';
+                }
+            },
+            onBeforeLoad : function(){
+                try{
+                    $("#look_studentList").combobox("getData");
+                }catch(err){
+                    preLoadLookStudent();
+                }
+            }
+        });
+
+        function preLoadLookTeacher(){
+            $("#look_teacherList").combobox({
+                width: "150",
+                height: "25",
+                valueField: "no",
+                textField: "name",
+                multiple: false, //可多选
+                editable: false, //不可编辑
+                method: "post",
+                url: [[@{/teacher/getTeacherList(from=combox)}]],
+        });
+        }
+
+        function preLoadLookStudent(){
+            $("#look_studentList").combobox({
+                width: "150",
+                height: "25",
+                valueField: "no",
+                textField: "name",
+                multiple: false, //可多选
+                editable: false, //不可编辑
+                method: "post",
+                url: [[@{/student/getStudentList(from=combox)}]],
+        });
+        };
+    });
+        /*]]>*/
+    </script>
+</head>
+<body>
+<!-- 数据列表 -->
+<table id="dataList" cellspacing="0" cellpadding="0">
+</table>
+
+<!-- 工具栏 -->
+<div id="toolbar">
+    <div style="float: left;"><a id="add" href="javascript:;" class="easyui-linkbutton" data-options="iconCls:'icon-add',plain:true">添加</a></div>
+    <div style="float: left; margin-right: 10px;"><a id="edit-btn" href="javascript:;" class="easyui-linkbutton" data-options="iconCls:'icon-edit',plain:true">修改</a></div>
+    <div style="float: left; margin-right: 10px;"><a id="delete" href="javascript:;" class="easyui-linkbutton" data-options="iconCls:'icon-some-delete',plain:true">删除</a></div>
+    <div style="float: left; margin-right: 10px;"><a id="look" href="javascript:;" class="easyui-linkbutton" data-options="iconCls:'icon-some-delete',plain:true">查看详情</a></div>
+    <div style="margin-top: 3px;">
+            小组名称：<input id="teamName" class="easyui-textbox" name="teamName" />
+            老师：<input id="teacherList" class="easyui-textbox" name="teacher" />
+        <a id="search-btn" href="javascript:;" class="easyui-linkbutton" data-options="iconCls:'icon-search',plain:true">搜索</a>
+    </div>
+</div>
+
+<!-- 添加窗口 -->
+<div id="addDialog" style="padding: 10px">
+    <form id="addForm" method="post" enctype="multipart/form-data">
+        <table cellpadding="8" >
+            <tr>
+                <td>小组名称:</td>
+                <td>
+                    <input id="add_name" name="name" style="width: 200px; height: 30px;" class="easyui-textbox" type="text" data-options="required:true, missingMessage:'不能为空'" />
+                </td>
+            </tr>
+            <tr>
+                <td>实验室:</td>
+                <td><input id="add_labor" style="width: 200px; height: 30px;" class="easyui-textbox" type="text" name="labor"  data-options="required:true, missingMessage:'不能为空'" /></td>
+            </tr>
+            <tr>
+                <td>负责老师:</td>
+                <td><input id="add_teacherList" style="width: 200px; height: 30px;" class="easyui-textbox" type="text" name="teacher"  data-options="required:true, missingMessage:'不能为空'" /></td>
+            </tr>
+        </table>
+    </form>
+</div>
+
+<!-- 编辑窗口 -->
+<div id="editDialog" style="padding: 10px">
+    <form id="editForm" method="post" enctype="multipart/form-data">
+        <input type="hidden" id="edit_no" name="no">
+        <table cellpadding="8" >
+            <tr>
+                <td>小组名称:</td>
+                <td>
+                    <input id="edit_name" name="name" style="width: 200px; height: 30px;" class="easyui-textbox" type="text" data-options="required:true, missingMessage:'不能为空'" />
+                </td>
+            </tr>
+            <tr>
+                <td>实验室:</td>
+                <td><input id="edit_labor" style="width: 200px; height: 30px;" class="easyui-textbox" type="text" name="labor"  data-options="required:true, missingMessage:'不能为空'" /></td>
+            </tr>
+            <tr>
+                <td>负责老师:</td>
+                <td><input id="edit_teacherList" style="width: 200px; height: 30px;" class="easyui-textbox" type="text" name="teacher"  data-options="required:true, missingMessage:'不能为空'" /></td>
+            </tr>
+        </table>
+    </form>
+</div>
+
+<!-- 查看成员窗口 -->
+<div id="lookDialog" style="padding: 10px">
+    <input type="hidden" id="look_no" name="no">
+    小组名称：<input id="look_name" name="name" style="width: 200px; height: 30px;" class="easyui-textbox" type="text"/><br><br>
+    <div style="border-style: solid;border-color: blue">
+        <p style="color: red">从下拉框中选中老师或学生后，点击下面的增加按钮即可增加</p>
+    老师：<input id="look_teacherList" class="easyui-textbox" name="teacher" />学生：<input id="look_studentList" class="easyui-textbox" name="student" /><br><br>
+    </div>
+    <p style="color: red;margin-left: 20px;">从复选框中选中老师或学生后，点击下方删除按钮即可删除</p>
+    <div>
+    <div style="float:left; margin-left: 20px;"><div id="team_teachers"></div></div>
+    <div style="float:right; margin-right: 20px"><div id="team_students"></div></div>
+    </div>
+    <br>
+</div>
+
+</body>
+</html>

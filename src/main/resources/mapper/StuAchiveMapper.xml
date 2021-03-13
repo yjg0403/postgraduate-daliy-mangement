@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yjg123.projectmanager.mapper.StuAchiveMapper">
+
+    <resultMap type="com.yjg123.projectmanager.domain.StuAchive" id="StuAchiveInfo">
+        <result column="id" property="id"/>
+        <result column="student" property="student"/>
+        <result column="content" property="content"/>
+        <result column="type" property="type"/>
+        <result column="info" property="info"/>
+    </resultMap>
+
+    <select id="queryList" resultMap="StuAchiveInfo" >
+        <!-- 根据条件查询 所有信息 -->
+        <if test="teacherNo!=null">
+            select *
+            from student,stu_achive
+            <where>
+                student.teacher=#{teacherNo}
+                and stu_achive.student=student.no
+                <if test="student!=null"> and student LIKE concat("%",#{student},"%") </if>
+                <if test="type!=null"> and type LIKE concat("%",#{type},"%") </if>
+            </where>
+        </if>
+        <if test="teacherNo==null">
+        SELECT *
+        from stu_achive
+        <where>
+            <if test="student!=null"> and student LIKE concat("%",#{student},"%") </if>
+            <if test="type!=null"> and type LIKE concat("%",#{type},"%") </if>
+        </where>
+        </if>
+        limit #{startIndex},#{pagesize}
+    </select>
+
+    <select id="queryCount" resultType="int" >
+        <if test="teacherNo!=null">
+            select count(*)
+            from student,stu_achive
+            <where>
+                student.teacher=#{teacherNo}
+                and stu_achive.student=student.no
+                <if test="student!=null"> and student LIKE concat("%",#{student},"%") </if>
+                <if test="type!=null"> and type LIKE concat("%",#{type},"%") </if>
+            </where>
+        </if>
+        <if test="teacherNo==null">
+            SELECT count(*)
+            from stu_achive
+            <where>
+                <if test="student!=null"> and student LIKE concat("%",#{student},"%") </if>
+                <if test="type!=null"> and type LIKE concat("%",#{type},"%") </if>
+            </where>
+        </if>
+    </select>
+
+    <insert id="addStuAchive" parameterType="StuAchive">
+        insert into stu_achive(student,content,type,info) values
+             (#{student},#{content},#{type},#{info})
+    </insert>
+
+    <delete id="deleteStuAchive" parameterType="java.util.ArrayList">
+        delete from stu_achive
+        <where>
+            id in
+            <foreach collection="list" open="(" close=")" separator="," item="id">
+                #{id}
+            </foreach>
+        </where>
+    </delete>
+
+    <update id="editStuAchive" parameterType="StuAchive">
+        update stu_achive set
+                student = #{student},content = #{content},
+                type = #{type}, info = #{info}
+        where id = #{id}
+    </update>
+
+    <select id="findByName" parameterType="String" resultType="StuAchive">
+        select * from stu_achive where name = #{StuAchiveName}
+    </select>
+
+</mapper>

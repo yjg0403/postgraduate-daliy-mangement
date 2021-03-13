@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>学生个人计划</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/easyui/themes/default/easyui.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/easyui/themes/icon.css}">
+    <link rel="stylesheet" type="text/css" th:href="@{/easyui/css/demo.css}">
+    <script type="text/javascript" th:src="@{/easyui/jquery.min.js}"></script>
+    <script type="text/javascript" th:src="@{/easyui/jquery.easyui.min.js}"></script>
+    <script type="text/javascript" th:src="@{/easyui/js/validateExtends.js}"></script>
+    <style>
+        .datagrid-btable tr{height: 40px;}
+        .datagrid-cell{height: 40px;line-height:40px;}
+        .ant-btn {
+            line-height: 1.499;
+            position: relative;
+            display: inline-block;
+            font-weight: 400;
+            white-space: nowrap;
+            text-align: center;
+            background-image: none;
+            border: 1px solid transparent;
+            -webkit-box-shadow: 0 2px 0 rgba(0,0,0,0.015);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.015);
+            cursor: pointer;
+            -webkit-transition: all .3s cubic-bezier(.645, .045, .355, 1);
+            transition: all .3s cubic-bezier(.645, .045, .355, 1);
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -ms-touch-action: manipulation;
+            touch-action: manipulation;
+            height: 32px;
+            padding: 0 15px;
+            font-size: 14px;
+            border-radius: 4px;
+            color: rgba(0,0,0,0.65);
+            background-color: #fff;
+            border-color: #d9d9d9;
+        }
+        .ant-btn-red {
+            color: #fff;
+            background-color: #FF5A44;
+            border-color: #FF5A44;
+            text-shadow: 0 -1px 0 rgba(0,0,0,0.12);
+            -webkit-box-shadow: 0 2px 0 rgba(0,0,0,0.045);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.045);
+        }
+        button {
+            border: none;
+            outline: none;
+        }
+    </style>
+    <script type="text/javascript" th:inline="javascript">
+        /*<![CDATA[*/
+        //date初始化
+        $.fn.datebox.defaults.formatter = function(date){
+            var y = date.getFullYear();
+            var m = date.getMonth()+1;
+            var d = date.getDate();
+            return y+'-'+m+'-'+d;
+        };
+
+        $.fn.datebox.defaults.parser = function(s){
+            var t = Date.parse(s);
+            if (!isNaN(t)){
+                return new Date(t);
+            } else {
+                return new Date();
+            }
+        };
+
+        function updateIsRead(id){
+            $("#dataList").datagrid("selectRecord",id);
+            var selectedRow = $("#dataList").datagrid("getSelected");
+            var isRead = selectedRow.isRead;
+            if(isRead=='否'){
+                isRead='是';
+                var formData = {id:id,isRead:isRead};
+                $.ajax({
+                    type: "post",
+                    url:[[@{/studentTask/updateIsRead}]],
+                    data: formData,
+                    success: function(data){
+                    if(data.success){
+                        $.messager.alert("消息提醒",data.message,"info");
+                        //重新刷新页面数据
+                        $('#dataList').datagrid("reload");
+                        $("#dataList").datalist("uncheckAll");
+                    } else{
+                        $.messager.alert("消息提醒",data.message,"warning");
+                        return;
+                    }
+                }
+            })
+            }
+        }
+
+        $(function() {
+            //datagrid初始化
+            $('#dataList').datagrid({
+                title:'计划列表',
+                iconCls:'icon-more',//图标
+                border: true,
+                collapsible: false,//是否可折叠的
+                checkOnSelect: false,
+                fit: true,//自动大小
+                method: "post",
+                url:[[@{/studentTask/getStudentTaskList}]],
+            idField:'id',
+                singleSelect: false,//是否单选
+                pagination: true,//分页控件
+                rownumbers: true,//行号
+                sortName:'student',
+                sortOrder:'DESC',
+                remoteSort: false,
+                columns: [
+                [
+                    {field:'chk',checkbox: true,width:50},
+                    {field:'id',title:'ID',width:50,hidden: true},
+                    {field:'student',title:'学号',width:150, sortable: true},
+                    {field:'studentName',title:'学生',width:50,
+                        formatter: function(value,row,index){
+                            if (row.student){
+                                var studentList = $("#studentList").combobox("getData");
+                                for(var i=0;i<studentList.length;i++ ){
+                                    if(row.student == studentList[i].no)return studentList[i].name;
+                                }
+                                return row.student;
+                            } else {
+                                return 'not found';
+                            }
+                        }
+                    },
+                    {field:'content',title:'计划内容',width:200},
+                    {field:'startTime',title:'开始日期',width:100,sortable: true},
+                    {field:'endTime',title:'截止日期',width:100,sortable: true},
+                    {field:'schedule',title:'进度',width:200},
+                    {field:'state',title:'状态',width:100,sortable: true,
+                        styler: function(value,row,index){
+                            if (value == '超时未完成'){
+                                return 'background-color:#ffee00;color:red;';
+                            }
+                        }
+                    },
+                    {field:'isRead',title:'是否已读',width:80,sortable: true,
+                        styler: function(value,row,index){
+                            if (row.isRead == '否'){
+                                return 'background-color:#6293BB;color:#fff;';
+                            }
+                        }
+                    },
+                    {field:'suggest',title:'老师建议',width:200},
+                    {field:'operate',title:'审阅操作',align:'center',width:$(this).width()*0.1,
+                        formatter:function(value, row, index){
+                            var str = '<button class="ant-btn ant-btn-red" onclick="updateIsRead('+row.id+')">点击已阅</a></button>';
+                            return str;
+                        }
+                    }
+                ]
+            ],
+                toolbar: "#toolbar",
+                /*onLoadSuccess:function(){
+                    $("a[name='opera']").linkbutton({text:'下订单',plain:true,iconCls:'icon-add'});
+                },*/
+                //     rowStyler: function(index,row){
+                //     if (row.isRead == '0'){
+                //         return 'background-color:#6293BB;color:#fff;';
+                //     }
+                // },
+                onBeforeLoad : function(){
+                try{
+                    $("#studentList").combobox("getData")
+                }catch(err){
+                    preLoadStudent();
+                }
+            }
+        });
+
+
+            //提前加载教师信息
+            function preLoadStudent(){
+                $("#studentList").combobox({
+                    width: "150",
+                    height: "25",
+                    valueField: "no",
+                    textField: "name",
+                    multiple: false, //可多选
+                    editable: false, //不可编辑
+                    method: "post",
+                    url: [[@{/student/getStudentList(from=combox)}]],
+                onChange: function(newValue, oldValue){
+                    //加载班级下的学生
+                    //$('#dataList').datagrid("options").queryParams = {clazzid: newValue};
+                    //$('#dataList').datagrid("reload");
+                }
+
+            });
+            }
+
+            //设置分页控件
+            var p = $('#dataList').datagrid('getPager');
+            $(p).pagination({
+                pageSize: 10,//每页显示的记录条数，默认为10
+                pageList: [10,20,30,50,100],//可以设置每页记录条数的列表
+                beforePageText: '第',//页数文本框前显示的汉字
+                afterPageText: '页    共 {pages} 页',
+                displayMsg: '当前显示 {from} - {to} 条记录   共 {total} 条记录',
+            });
+
+            //设置工具类按钮
+            $("#add").click(function(){
+                $("#addDialog").dialog("open");
+            });
+
+            //设置编辑按钮
+            $("#edit").click(function(){
+                table = $("#editTable");
+                var selectRows = $("#dataList").datagrid("getSelections");
+                if(selectRows.length != 1){
+                    $.messager.alert("消息提醒", "请选择一条数据进行操作!", "warning");
+                } else{
+                    $("#editDialog").dialog("open");
+                }
+            });
+
+            //编辑计划信息
+            $("#editDialog").dialog({
+                title: "修改计划信息",
+                width: 450,
+                height: 600,
+                iconCls: "icon-edit",
+                modal: true,
+                collapsible: false,
+                minimizable: false,
+                maximizable: false,
+                draggable: true,
+                closed: true,
+                buttons: [
+                    {
+                        text:'提交',
+                        plain: true,
+                        iconCls:'icon-user_add',
+                        handler:function(){
+                            var validate = $("#editForm").form("validate");
+                            if(!validate){
+                                $.messager.alert("消息提醒","请检查你输入的数据!","warning");
+                                return;
+                            } else{
+                                var student = $("#edit_studentList").combobox("getValue");
+                                var id = $("#dataList").datagrid("getSelected").id;
+                                var state = $("#edit_state").combobox('getValue');
+                                var startTime = $("#edit_startTime").combo("getValue");
+                                var endTime = $("#edit_endTime").combo("getValue");
+                                var content = $("#edit_content").val();
+                                var isRead = $("#edit_isRead").combobox('getValue');
+                                var schedule =  $("#edit_schedule").val();
+                                var suggest =  $("#edit_suggest").val();
+                                var data = {id:id, student:student,isRead:isRead,schedule:schedule,suggest:suggest, state:state,startTime:startTime,content:content,endTime:endTime};
+
+                                $.ajax({
+                                    type: "post",
+                                    url: [[@{/studentTask/editStudentTask}]],
+                                data: data,
+                                    success: function(data){
+                                    if(data.success){
+                                        $.messager.alert("消息提醒",data.message,"info");
+                                        //关闭窗口
+                                        $("#editDialog").dialog("close");
+                                        //清空原表格数据
+                                        $("#edit_state").combobox('setValue', "");
+                                        $("#edit_isRead").combobox('setValue',"");
+                                        $("#edit_suggest").val("");
+                                        $("#edit_schedule").val("");
+                                        $("#edit_content").val("");
+                                        $("#edit_studentList").combobox('setValue',"");
+                                        $("#edit_startTime").combo('setValue',"");
+                                        $("#edit_endTime").combo('setValue',"");
+                                        //重新刷新页面数据
+                                        $('#dataList').datagrid("reload");
+                                        $('#dataList').datagrid("uncheckAll");
+
+                                    } else{
+                                        $.messager.alert("消息提醒",data.message,"warning");
+                                        return;
+                                    }
+                                }
+                            });
+                            }
+                        }
+                    },
+                    {
+                        text:'重置',
+                        plain: true,
+                        iconCls:'icon-reload',
+                        handler:function(){
+                            $("#edit_state").combobox('setValue', "");
+                            $("#edit_isRead").combobox('setValue', "");
+                            $("#edit_suggest").val("");
+                            $("#edit_schedule").val("");
+                            $("#edit_content").val("");
+                            $("#edit_studentList").combobox('setValue',"");
+                            $("#edit_startTime").combo('setValue',"");
+                            $("#edit_endTime").combo('setValue',"");
+                            $("#edit_id").val("");
+                            $(table).find(".chooseTr").remove();
+
+                        }
+                    },
+                ],
+                onBeforeOpen: function(){
+                    var selectRow = $("#dataList").datagrid("getSelected");
+                    //设置值
+                    $("#edit_state").combobox('setValue', selectRow.state);
+                    $("#edit_isRead").combobox('setValue', selectRow.isRead);
+                    $("#edit_content").val(selectRow.content);
+                    $("#edit_schedule").val(selectRow.schedule);
+                    $("#edit_suggest").val(selectRow.suggest);
+                    $("#edit_id").val(selectRow.id);
+                    var student = selectRow.student;
+                    var endTime = selectRow.endTime;
+                    var startTime = selectRow.startTime;
+                    setTimeout(function(){
+                        $("#edit_startTime").datebox('setValue',startTime);
+                        $("#edit_endTime").datebox('setValue',endTime);
+                        $("#edit_studentList").combobox('setValue', student);
+                    }, 100);
+                },
+                onClose: function(){
+                    $("#edit_state").combobox('setValue', "");
+                    $("#edit_isRead").combobox('setValue', "");
+                    $("#edit_suggest").val("");
+                    $("#edit_schedule").val("");
+                    $("#edit_content").val("");
+                    $("#edit_id").val("");
+                    $("#edit_studentList").combobox('setValue',"");
+                    $("#edit_startTime").combo('setValue',"");
+                    $("#edit_endTime").combo('setValue',"");
+                }
+            });
+
+            //删除
+            $("#delete").click(function(){
+                var selectRow = $("#dataList").datagrid("getSelections");
+                var selectLength = selectRow.length;
+                if(selectLength == 0){
+                    $.messager.alert("消息提醒", "请选择数据进行删除!", "warning");
+                } else{
+                    var jsonObj = {};
+                    $.each(selectRow,function(i,n){
+                        jsonObj["nos["+i+"]"] = n.id;
+                    });
+                    $.messager.confirm("消息提醒", "将删除与小组计划相关的所有数据，确认继续？", function(r){
+                        if(r){
+                            $.ajax({
+                                type: "post",
+                                url: [[@{/studentTask/deleteStudentTask}]],
+                            data: jsonObj,
+                                success: function(data){
+                                if(data.message){
+                                    $.messager.alert("消息提醒",data.message,"info");
+                                    //刷新表格
+                                    $("#dataList").datagrid("reload");
+                                } else{
+                                    $.messager.alert("消息提醒",data.message,"warning");
+                                    return;
+                                }
+                            }
+                        });
+                        }
+                    });
+                }
+            });
+
+            //设置添加窗口
+            $("#addDialog").dialog({
+                title: "添加计划",
+                width: 450,
+                height: 400,
+                iconCls: "icon-add",
+                modal: true,
+                collapsible: false,
+                minimizable: false,
+                maximizable: false,
+                draggable: true,
+                closed: true,
+                buttons: [
+                    {
+                        text:'添加',
+                        plain: true,
+                        iconCls:'icon-book-add',
+                        handler:function(){
+                            var validate = $("#addForm").form("validate");
+                            if(!validate){
+                                $.messager.alert("消息提醒","请检查你输入的数据!","warning");
+                                return;
+                            } else{
+                                $.ajax({
+                                    type: "post",
+                                    url: [[@{/studentTask/addStudentTask}]],
+                                data: $("#addForm").serialize(),
+                                    success: function(data){
+                                    if(data.success){
+                                        $.messager.alert("消息提醒",data.message,"info");
+                                        //关闭窗口
+                                        $("#addDialog").dialog("close");
+                                        //清空原表格数据
+                                        $("#add_state").combobox('setValue', "");
+                                        $("#add_isRead").combobox('setValue', "");
+                                        $("#add_suggest").val("");
+                                        $("#add_schedule").val("");
+                                        $("#add_content").val("");
+                                        $("#add_studentList").combobox('setValue',"");
+                                        $("#add_startTime").combo('setValue',"");
+                                        $("#add_endTime").combo('setValue',"");
+                                        //刷新
+                                        $('#dataList').datagrid("reload");
+                                    } else{
+                                        $.messager.alert("消息提醒",data.message,"warning");
+                                        return;
+                                    }
+                                }
+                            });
+                            }
+                        }
+                    },
+                    {
+                        text:'重置',
+                        plain: true,
+                        iconCls:'icon-book-reset',
+                        handler:function(){
+                            $("#add_state").combobox('setValue', "");
+                            $("#add_isRead").combobox('setValue', "");
+                            $("#add_suggest").val("");
+                            $("#add_schedule").val("");
+                            $("#add_content").val("");
+                            $("#add_studentList").combobox('setValue',"");
+                            $("#add_startTime").combo('setValue',"");
+                            $("#add_endTime").combo('setValue',"");
+                            $(table).find(".chooseTr").remove();
+                        }
+                    },
+                ]
+            });
+
+            //下拉框通用属性
+            $("#add_studentList, #edit_studentList,#studentList").combobox({
+                width: "80",
+                height: "30",
+                valueField: "no",
+                textField: "name",
+                multiple: false, //不可多选
+                editable: true, //不可编辑
+                method: "post"
+            });
+            //添加信息教师选择框
+            $("#add_studentList").combobox({
+                url: [[@{/student/getStudentList(from=combox)}]],
+            onLoadSuccess: function(){
+                //默认选择第一条数据
+                var data = $(this).combobox("getData");
+                $(this).combobox('setValue', data[0].no);
+            }
+        });
+            //编辑信息教师选择框
+            $("#edit_studentList").combobox({
+                url: [[@{/student/getStudentList(from=combox)}]],
+            onLoadSuccess: function(){
+                //默认选择第一条数据
+                var data = $(this).combobox("getData");
+                $(this).combobox('setValue', data[0].no);
+            }
+        });
+
+            //搜索按钮监听事件
+            $("#search-btn").click(function(){
+                $('#dataList').datagrid('load',{
+                    state: $("#search_state_list").combobox('getValue'),
+                    startTime: $("#date_from").combo("getValue"),
+                    endTime: $("#date_to").combo("getValue"),
+                    student: $("#studentList").combobox('getValue'),
+                    isRead: $("#search_isRead").combobox('getValue')
+                });
+            });
+        });
+        /*]]>*/
+    </script>
+</head>
+<body>
+<!-- 数据列表 -->
+<table id="dataList" cellspacing="0" cellpadding="0">
+
+</table>
+<!-- 工具栏 -->
+<div id="toolbar">
+    <!--<div style="float: left;"><a id="add" href="javascript:;" class="easyui-linkbutton" data-options="iconCls:'icon-add',plain:true">添加</a></div>
+    <div style="float: left;" class="datagrid-btn-separator"></div>-->
+    <div style="float: left;"><a id="edit" href="javascript:;" class="easyui-linkbutton" data-options="iconCls:'icon-edit',plain:true">提出建议</a></div>
+    <div style="float: left; margin-right: 10px;"><a id="delete" href="javascript:;" class="easyui-linkbutton" data-options="iconCls:'icon-some-delete',plain:true">删除</a></div>
+    <div style="float: left;" class="datagrid-btn-separator"></div>
+    <div style="margin-top: 3px;">
+        Date From: <input id="date_from" class="easyui-datebox" style="width:100px" name="date_from" />
+        &nbsp;To: <input  id="date_to" class="easyui-datebox" style="width:100px" name="date_to" />
+        &nbsp;&nbsp;完成状态：<select id="search_state_list"  class="easyui-combobox" data-options="editable: false, panelHeight: 150, width: 100, height: 30" name="state">
+        <option value="">全部</option>
+        <option value="任务已完成">任务已完成</option>
+        <option value="任务进行中">任务进行中</option>
+        <option value="超时未完成">超时未完成</option>
+        <option value="任务未开始">任务未开始</option>
+        <option value="废弃">废弃</option></select>
+        &nbsp;&nbsp;是否已读：<select id="search_isRead"  class="easyui-combobox" data-options="editable: false, panelHeight: 150, width: 100, height: 30" name="isRead">
+        <option value="">全部</option>
+        <option value="是">是</option>
+        <option value="否">否</option></select>
+        &nbsp;&nbsp;学生：<input id="studentList" class="easyui-textbox" name="student" />
+        <a id="search-btn" href="javascript:;" class="easyui-linkbutton" data-options="iconCls:'icon-search',plain:true">搜索</a>
+    </div>
+</div>
+
+
+
+
+<!-- 添加数据窗口 -->
+<div id="addDialog" style="padding: 10px">
+    <form id="addForm" method="post">
+        <table cellpadding="8" >
+            <tr>
+                <td>状态:</td>
+                <td><select id="add_state"  class="easyui-combobox" data-options="editable: false, panelHeight: 150, width: 100, height: 30" name="state">
+                    <option value="任务已完成">任务已完成</option>
+                    <option value="任务进行中">任务进行中</option>
+                    <option value="超时未完成">超时未完成</option>
+                    <option value="任务未开始">任务未开始</option>
+                    <option value="废弃">废弃</option></select></td>
+            </tr>
+            <tr>
+                <td style="width:40px">学生:</td>
+                <td colspan="3">
+                    <input id="add_studentList" style="width: 200px; height: 30px;" class="easyui-textbox" name="student" />
+                </td>
+                <td style="width:80px"></td>
+            </tr>
+            <tr>
+                <td>开始时间:</td>
+                <td><input id="add_startTime" style="width: 100px; height: 30px;" class="easyui-datebox" name="startTime" data-options="required:true, missingMessage:'不能为空'" /></td>
+            </tr>
+            <tr>
+                <td>截止时间:</td>
+                <td><input id="add_endTime" style="width: 100px; height: 30px;" class="easyui-datebox" name="endTime" data-options="required:true, missingMessage:'不能为空'" /></td>
+            </tr>
+            <tr>
+                <td>计划内容:</td>
+                <td>
+                    <textarea id="add_content" name="content" style="width: 200px; height: 60px;" class="" ></textarea>
+                </td>
+            </tr>
+            <tr>
+                <td>进度:</td>
+                <td>
+                    <textarea id="add_schedule" name="schedule" style="width: 200px; height: 60px;" class="" ></textarea>
+                </td>
+            </tr>
+            <tr>
+                <td>是否已读:</td>
+                <td><select id="add_isRead"  class="easyui-combobox" data-options="editable: false, panelHeight: 150, width: 100, height: 30" name="isRead">
+                    <option value="是">是</option>
+                    <option value="否">否</option></select></td>
+            </tr>
+            <tr>
+                <td>老师建议:</td>
+                <td>
+                    <textarea id="add_suggest" name="suggest" style="width: 200px; height: 60px;" class="" ></textarea>
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+
+<!-- 编辑数据窗口 -->
+<div id="editDialog" style="padding: 10px">
+    <form id="editForm" method="post">
+        <input type="hidden" name="id" id="edit_id">
+        <table cellpadding="8">
+            <tr style="display: none">
+                <td>状态:</td>
+                <td><select id="edit_state"  class="easyui-combobox" data-options="editable: false, panelHeight: 150, width: 100, height: 30" name="state">
+                    <option value="任务已完成">任务已完成</option>
+                    <option value="任务进行中">任务进行中</option>
+                    <option value="超时未完成">超时未完成</option>
+                    <option value="任务未开始">任务未开始</option>
+                    <option value="废弃">废弃</option></select></td>
+            </tr>
+            <tr>
+                <td style="width:40px">学生:</td>
+                <td colspan="3">
+                    <input id="edit_studentList" style="width: 200px; height: 30px;" class="easyui-textbox" name="student" readonly/>
+                </td>
+                <td style="width:80px"></td>
+            </tr>
+            <tr >
+                <td>开始时间:</td>
+                <td><input id="edit_startTime" style="width: 100px; height: 30px;" class="easyui-datebox" name="startTime" data-options="required:true, missingMessage:'不能为空'" readonly/></td>
+            </tr>
+            <tr>
+                <td>截止时间:</td>
+                <td><input id="edit_endTime" style="width: 100px; height: 30px;" class="easyui-datebox" name="endTime" data-options="required:true, missingMessage:'不能为空'"  readonly/></td>
+            </tr>
+            <tr>
+                <td>计划内容:</td>
+                <td>
+                    <textarea id="edit_content" name="content" style="width: 200px; height: 60px;" class="" readonly></textarea>
+                </td>
+            </tr>
+            <tr>
+                <td>进度:</td>
+                <td>
+                    <textarea id="edit_schedule" name="schedule" style="width: 200px; height: 60px;" class="" readonly></textarea>
+                </td>
+            </tr>
+            <tr style="display: none">
+                <td>是否已读:</td>
+                <td><select id="edit_isRead"  class="easyui-combobox" data-options="editable: false, panelHeight: 150, width: 100, height: 30" name="isRead">
+                    <option value="是">是</option>
+                    <option value="否">否</option></select></td>
+            </tr>
+            <tr>
+                <td>老师建议:</td>
+                <td>
+                    <textarea id="edit_suggest" name="suggest" style="width: 200px; height: 60px;" class=""  data-options="required:true, missingMessage:'不能为空'"></textarea>
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+</body>
+</html>

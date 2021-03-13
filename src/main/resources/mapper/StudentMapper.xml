@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yjg123.projectmanager.mapper.StudenetMapper">
+
+    <resultMap type="com.yjg123.projectmanager.domain.Student" id="StudentInfo">
+        <result column="no" property="no"/>
+        <result column="name" property="name"/>
+        <result column="password" property="password"/>
+        <result column="team" property="team"/>
+        <result column="sex" property="sex"/>
+        <result column="age" property="age"/>
+        <result column="teacher" property="teacher"/>
+        <result column="depart" property="depart"/>
+        <result column="mobile" property="mobile"/>
+    </resultMap>
+
+    <select id="queryList" resultMap="StudentInfo">
+        <!-- 根据条件查询 学生的所有信息 -->
+        SELECT *
+        from student
+        <where>
+            <if test="username!=null">and name LIKE concat("%",#{username},"%")</if>
+            <if test="teacherNo!=null">and teacher LIKE concat("%",#{teacherNo},"%")</if>
+            <if test="departName!=null">and depart LIKE concat("%",#{departName},"%")</if>
+            <if test="teamNo!=null">and team LIKE concat("%",#{teamNo},"%")</if>
+            <if test="studentNo!=null">and no = #{studentNo}</if>
+        </where>
+        limit #{startIndex},#{pagesize}
+    </select>
+
+    <select id="queryCount" resultType="int">
+        select count(*) from student
+        <where>
+            <if test="username!=null">and name LIKE concat("%",#{username},"%")</if>
+            <if test="teacherNo!=null">and teacher LIKE concat("%",#{teacherNo},"%")</if>
+            <if test="departName!=null">and depart LIKE concat("%",#{departName},"%")</if>
+            <if test="team!=null">and team LIKE concat("%",#{team},"%")</if>
+            <if test="studentNo!=null">and no = #{studentNo}</if>
+        </where>
+    </select>
+
+    <insert id="addStudent" parameterType="Student">
+        insert into student(no,name,password,sex,age,depart,teacher,team,mobile)
+        values(#{no},#{name},#{password},#{sex},#{age},#{depart},#{teacher},#{team},#{mobile})
+    </insert>
+
+    <delete id="deleteStudent" parameterType="java.util.ArrayList">
+        delete from student
+        <where>
+            no in
+            <foreach collection="list" open="(" close=")" separator="," item="no">
+                #{no}
+            </foreach>
+        </where>
+    </delete>
+
+    <update id="editStudent" parameterType="Student">
+        update student
+        <set>
+            <if test="name != null">
+                name = #{name},
+            </if>
+            <if test="age != null">
+                age = #{age},
+            </if>
+            <if test="sex != null">
+                sex = #{sex},
+            </if>
+            <if test="mobile != null">
+                mobile = #{mobile},
+            </if>
+            <if test="depart != null">
+                depart = #{depart},
+            </if>
+            <if test="team != null">
+                team = #{team},
+            </if>
+            <if test="teacher != null">
+                teacher = #{teacher},
+            </if>
+        </set>
+        where no = #{no}
+    </update>
+
+
+    <select id="findById" parameterType="int" resultType="Student">
+        select * from student where no = #{no}
+    </select>
+
+    <select id="findByStudent" parameterType="Student" resultType="Student">
+        select * from student where no = #{no} and password = #{password}
+    </select>
+
+    <select id="isStudentByTeamId" parameterType="int" resultMap="StudentInfo">
+        select * from student where team= #{team}
+    </select>
+
+    <update id="editPswdByStudent" parameterType="Student">
+        update  student set password = #{password} where no = #{no}
+    </update>
+
+    <select id="findByName" parameterType="java.lang.String" resultType="int">
+        select no from student where name = #{name}
+    </select>
+
+</mapper>

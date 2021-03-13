@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yjg123.projectmanager.mapper.TeamTaskMapper">
+
+    <resultMap type="com.yjg123.projectmanager.domain.TeamTask" id="TeamTaskInfo">
+        <result column="id" property="id"/>
+        <result column="team" property="team"/>
+        <result column="content" property="content"/>
+        <result column="startTime" property="startTime"/>
+        <result column="endTime" property="endTime"/>
+        <result column="schedule" property="schedule"/>
+        <result column="state" property="state"/>
+        <result column="isRead" property="isRead"/>
+        <result column="suggest" property="suggest"/>
+    </resultMap>
+
+    <select id="queryList" resultMap="TeamTaskInfo" >
+        <!-- 根据条件查询 班级的所有信息 -->
+        <if test="studentNo==null&amp;&amp;teacherNo==null">
+            SELECT *
+            from team_task
+            <where>
+                <if test="team!=null"> and team LIKE concat("%",#{team},"%") </if>
+                <if test="startTime!=null&amp;&amp;endTime!=null">
+                    startTime &gt;= #{startTime}
+                    and
+                    endTime &lt;= #{endTime}
+                </if>
+                <if test="startTime!=null&amp;&amp;endTime==null">
+                    startTime &gt;= #{startTime}
+                </if>
+                <if test="startTime==null&amp;&amp;endTime!=null">
+                    endTime &lt;= #{endTime}
+                </if>
+                <if test="state!=null"> and state LIKE concat("%",#{state},"%") </if>
+                <if test="isRead!=null"> and isread LIKE concat("%",#{isRead},"%") </if>
+            </where>
+        </if>
+        <if test="studentNo==null&amp;&amp;teacherNo!=null">
+            select *
+            from team_teacher,team_task
+            <where>
+                team_teacher.teacher=#{teacherNo}
+                and team_task.team=team_teacher.team
+                <if test="team!=null"> and team LIKE concat("%",#{team},"%") </if>
+                <if test="startTime!=null&amp;&amp;endTime!=null">
+                    startTime &gt;= #{startTime}
+                    and
+                    endTime &lt;= #{endTime}
+                </if>
+                <if test="startTime!=null&amp;&amp;endTime==null">
+                    startTime &gt;= #{startTime}
+                </if>
+                <if test="startTime==null&amp;&amp;endTime!=null">
+                    endTime &lt;= #{endTime}
+                </if>
+                <if test="state!=null"> and state LIKE concat("%",#{state},"%") </if>
+                <if test="isRead!=null"> and isread LIKE concat("%",#{isRead},"%") </if>
+            </where>
+        </if>
+        <if test="studentNo!=null&amp;&amp;teacherNo==null">
+            select *
+            from student,team_task
+            <where>
+                student.no=#{studentNo}
+                and team_task.team=student.team
+                <if test="team!=null"> and team LIKE concat("%",#{team},"%") </if>
+                <if test="startTime!=null&amp;&amp;endTime!=null">
+                    startTime &gt;= #{startTime}
+                    and
+                    endTime &lt;= #{endTime}
+                </if>
+                <if test="startTime!=null&amp;&amp;endTime==null">
+                    startTime &gt;= #{startTime}
+                </if>
+                <if test="startTime==null&amp;&amp;endTime!=null">
+                    endTime &lt;= #{endTime}
+                </if>
+                <if test="state!=null"> and state LIKE concat("%",#{state},"%") </if>
+                <if test="isRead!=null"> and isread LIKE concat("%",#{isRead},"%") </if>
+            </where>
+        </if>
+        limit #{startIndex},#{pagesize}
+    </select>
+
+    <select id="queryCount" resultType="int" >
+        <if test="studentNo==null&amp;&amp;teacherNo==null">
+            SELECT count(*)
+            from team_task
+            <where>
+                <if test="team!=null"> and team LIKE concat("%",#{team},"%") </if>
+                <if test="startTime!=null&amp;&amp;endTime!=null">
+                    startTime &gt;= #{startTime}
+                    and
+                    endTime &lt;= #{endTime}
+                </if>
+                <if test="startTime!=null&amp;&amp;endTime==null">
+                    startTime &gt;= #{startTime}
+                </if>
+                <if test="startTime==null&amp;&amp;endTime!=null">
+                    endTime &lt;= #{endTime}
+                </if>
+                <if test="state!=null"> and state LIKE concat("%",#{state},"%") </if>
+                <if test="isRead!=null"> and isread LIKE concat("%",#{isRead},"%") </if>
+            </where>
+        </if>
+        <if test="studentNo==null&amp;&amp;teacherNo!=null">
+            select count(*)
+            from team_teacher,team_task
+            <where>
+                team_teacher.teacher=#{teacherNo}
+                and team_task.team=team_teacher.team
+                <if test="team!=null"> and team LIKE concat("%",#{team},"%") </if>
+                <if test="startTime!=null&amp;&amp;endTime!=null">
+                    startTime &gt;= #{startTime}
+                    and
+                    endTime &lt;= #{endTime}
+                </if>
+                <if test="startTime!=null&amp;&amp;endTime==null">
+                    startTime &gt;= #{startTime}
+                </if>
+                <if test="startTime==null&amp;&amp;endTime!=null">
+                    endTime &lt;= #{endTime}
+                </if>
+                <if test="state!=null"> and state LIKE concat("%",#{state},"%") </if>
+                <if test="isRead!=null"> and isread LIKE concat("%",#{isRead},"%") </if>
+            </where>
+        </if>
+        <if test="studentNo!=null&amp;&amp;teacherNo==null">
+            select count(*)
+            from student,team_task
+            <where>
+                student.no=#{studentNo}
+                and team_task.team=student.team
+                <if test="team!=null"> and team LIKE concat("%",#{team},"%") </if>
+                <if test="startTime!=null&amp;&amp;endTime!=null">
+                    startTime &gt;= #{startTime}
+                    and
+                    endTime &lt;= #{endTime}
+                </if>
+                <if test="startTime!=null&amp;&amp;endTime==null">
+                    startTime &gt;= #{startTime}
+                </if>
+                <if test="startTime==null&amp;&amp;endTime!=null">
+                    endTime &lt;= #{endTime}
+                </if>
+                <if test="state!=null"> and state LIKE concat("%",#{state},"%") </if>
+                <if test="isRead!=null"> and isread LIKE concat("%",#{isRead},"%") </if>
+            </where>
+        </if>
+    </select>
+
+    <insert id="addTeamTask" parameterType="TeamTask">
+        insert into team_task(team,content,startTime,endTime,schedule,state,isread,suggest) values
+             (#{team},#{content},#{startTime},#{endTime},#{schedule},#{state}, #{isRead},#{suggest})
+    </insert>
+
+    <delete id="deleteTeamTask" parameterType="java.util.ArrayList">
+        delete from team_task
+        <where>
+            id in
+            <foreach collection="list" open="(" close=")" separator="," item="id">
+                #{id}
+            </foreach>
+        </where>
+    </delete>
+
+    <update id="updateIsRead" parameterType="Team">
+        update team_task set isread = #{isRead} where id = #{id}
+    </update>
+
+    <update id="updateState" statementType="CALLABLE">
+        {call UPDATE_TEAMTASK_STATE()}
+    </update>
+
+    <update id="editTeamTask" parameterType="TeamTask">
+        update team_task set
+                team = #{team},content = #{content},
+                startTime = #{startTime}, endTime = #{endTime},schedule = #{schedule},
+                state = #{state},isread = #{isRead},suggest = #{suggest}
+        where id = #{id}
+    </update>
+
+    <select id="findByName" parameterType="String" resultType="TeamTask">
+        select * from team_task where name = #{teamTaskName}
+    </select>
+
+</mapper>
